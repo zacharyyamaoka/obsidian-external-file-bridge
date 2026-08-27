@@ -2,6 +2,8 @@
 
 Extends Obsidian's single-root vault by letting you mount external folders as seamless, native-feeling directories inside your vault. Files stay in their original locations — no copying, no duplicating, no symlinking required.
 
+> **Fork direction:** this fork is becoming a narrow, local-first External File Bridge that mounts files on demand and hands them to whichever Obsidian view owns their extension. See the [planned architecture](docs/ARCHITECTURE.md) and its [interactive visual summary](docs/architecture.html). The conversion has not started yet; the current code remains the validated Folder Bridge 2.15.3 baseline.
+
 ---
 
 ## Full Feature List (v2.14.0)
