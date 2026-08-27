@@ -1,13 +1,14 @@
 {
-    "name": "folderbridge",
-    "version": "2.15.3",
-    "description": "Adds external folders to your vault as seamless, native-feeling directories. Creates virtual mount points that map real filesystem paths into the vault.",
+    "name": "obsidian-external-file-bridge",
+    "version": "0.1.0",
+    "description": "A local-only, read-only bridge that opens external files as temporary Obsidian TFiles.",
     "main": "main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs",
         "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
         "lint": "eslint main.ts 'src/**/*.ts'",
         "check:ui-text": "node scripts/check-ui-text.mjs",
+        "gallery": "node scripts/build-implementation-gallery.mjs",
         "test": "vitest run",
         "validate": "npm run lint && npm run check:ui-text && npm run build && npm test",
         "hooks:install": "git config core.hooksPath .githooks",
@@ -17,13 +18,15 @@
         "obsidian",
         "plugin",
         "virtual-filesystem",
-        "folder-bridge"
+        "external-files",
+        "monaco"
     ],
-    "author": "tescolopio",
+    "author": "Zach Yamaoka, based on Folder Bridge by Timmothy Escolopio",
     "license": "MIT",
     "devDependencies": {
         "@esbuild/linux-x64": "^0.27.3",
         "@eslint/json": "^1.1.0",
+        "@aws-sdk/client-s3": "^3.750.0",
         "@types/node": "^20.11.16",
         "@types/ssh2": "^1.15.4",
         "@typescript-eslint/eslint-plugin": "^8.56.1",
@@ -33,15 +36,14 @@
         "eslint": "^10.2.0",
         "eslint-plugin-obsidianmd": "^0.1.9",
         "obsidian": "^1.12.0",
+        "ssh2-sftp-client": "^11.0.0",
         "tslib": "2.6.2",
         "typescript": "5.3.3",
         "typescript-eslint": "^8.56.0",
-        "vitest": "^4.0.18"
+        "vitest": "^4.0.18",
+        "webdav": "^5.9.0"
     },
     "dependencies": {
-        "@aws-sdk/client-s3": "^3.750.0",
-        "chokidar": "^3.6.0",
-        "ssh2-sftp-client": "^11.0.0",
-        "webdav": "^5.9.0"
+        "chokidar": "^3.6.0"
     }
 }

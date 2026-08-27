@@ -1,6 +1,6 @@
-# External File Bridge — planned architecture
+# External File Bridge — architecture
 
-Status: architecture agreed; implementation has not started. This fork currently remains Folder Bridge 2.15.3 with its original `folderbridge` plugin ID.
+Status: the local-only read-only first slice is implemented as `external-file-bridge` 0.1.0 and verified in isolated Obsidian 1.13.7.
 
 ## Decision
 
@@ -33,14 +33,14 @@ flowchart LR
     B --> C["Resolve mount ID + relative path"]
     C --> D["Canonicalize and enforce root containment"]
     D --> E["Inject session-only TFolder/TFile"]
-    E --> F["workspace.openFile(TFile)"]
+    E --> F["Open a view with the temporary TFile"]
     F --> G{"Requested intent / extension owner"}
     G -->|"code or text"| H["VSCode Editor → local Monaco"]
     G -->|"rendered HTML"| I["Core Web Viewer → file URL"]
     G -->|"native media/PDF"| J["Obsidian core view"]
     K["External filesystem watcher"] --> L["Compatibility reconciler"]
     L --> E
-    L --> M["Vault create / modify / delete events"]
+    L --> M["Public vault modify event"]
     M --> H
 ```
 
@@ -56,7 +56,7 @@ obsidian://external-file?mount=pyblocks&path=src%2Fexample.py&line=42&view=sourc
 
 - `mount` is a stable human-readable ID, not an absolute path.
 - `path` is relative to that mount and cannot escape it.
-- `line` and a later `column` are optional navigation hints passed to a capable view.
+- `line` is an optional navigation hint applied to Monaco after opening. `column` is reserved by the companion link format.
 - `view=source` requests the extension owner, normally VSCode Editor for code.
 - `view=rendered` is explicit and is primarily for HTML through core Web Viewer.
 
@@ -97,45 +97,45 @@ Owns rendered local HTML. HTML source and rendered HTML are two explicit intents
 Share the mount-address model with the plugin:
 
 - `link-for /absolute/file.py` finds the containing mount and emits the portable URI.
-- `link-doctor` verifies parsing, mount availability, canonical containment, file existence, and the requested renderer.
+- `link-doctor` verifies parsing, mount availability, canonical containment, file existence, navigation hints, and the requested renderer.
 - An environment check verifies that External File Bridge is enabled and reports whether VSCode Editor or core Web Viewer can satisfy the requested intent.
 
 ## Compatibility seam inherited from Folder Bridge
 
 Folder Bridge replaces `vault.adapter` with a Proxy and injects `TFile`/`TFolder` objects into Obsidian's internal tree. That mechanism is the useful core, but it relies on private Obsidian behavior and must be isolated behind a small compatibility module.
 
-The upstream watcher currently sends Chokidar events through private `vault.onChange(...)`. In an isolated Obsidian 1.13.7 test, Chokidar saw an external rewrite but the public `modify` event did not fire and the open Monaco view did not refresh. The fork will replace that path with a tested reconciler that:
+The upstream watcher sent Chokidar changes through private `vault.onChange(...)`. In an isolated Obsidian 1.13.7 spike, Chokidar saw an external rewrite but that path did not refresh the open Monaco buffer. The fork replaces it with a reconciler that:
 
 1. updates or removes the injected object;
 2. refreshes its stat/cache state;
-3. emits the matching vault `create`, `modify`, or `delete` event;
-4. proves the open Monaco tab refreshes in real Obsidian.
+3. emits Obsidian's public `modify` event for a changed `TFile` and uses private create/remove hooks only for the virtual tree lifecycle;
+4. refreshes the open Monaco tab in real Obsidian.
 
 Private API use will be version-gated and fail closed with a useful notice. It should not be scattered through UI or protocol code.
 
-## First implementation slice
+## Implemented first slice
 
 The narrow tracer bullet is one read-only local file:
 
-1. Rename the package and plugin ID to `external-file-bridge` while retaining the MIT license and fork history.
-2. Keep only local desktop mounts and remove cloud/mobile/whole-tree features from the runtime boundary.
-3. Add a stable mount registry and the `obsidian://external-file` handler.
-4. Inject one requested path under a reserved session namespace and open it through `workspace.openFile`.
-5. Prove `.py` opens in VSCode Editor/Monaco without a physical vault entry.
-6. Rewrite the watcher reconciliation seam and prove a disk edit refreshes the open Monaco buffer.
-7. Add explicit rendered-HTML routing through core Web Viewer.
-8. Migrate `link-for` and `link-doctor`, then package a release installable through BRAT/manual release assets.
+1. The package and plugin ID are `external-file-bridge`; MIT lineage and fork history are retained.
+2. The bundled runtime contains only local desktop mounts and Chokidar. Cloud/mobile modules remain outside the production dependency tree.
+3. Stable mount settings and the `obsidian://external-file` handler are active.
+4. Only a requested file and its synthetic parent chain are injected under `_External/<mount-id>`.
+5. Source intent explicitly selects VSCode Editor's view, sets Monaco read-only, and applies the requested line.
+6. A per-file watcher refreshes an open Monaco buffer through the public `modify` event.
+7. Rendered HTML routes through the core Web Viewer; HTML source remains available with `view=source`.
+8. `link-for` emits mount-aware URIs and `link-doctor` diagnoses the full local composition.
 
-Write-through editing can follow only after read-only opening, refresh, path containment, unload cleanup, and workspace rehydration pass in the real app.
+Write-through editing remains intentionally out of scope. Read-only opening, refresh, path containment, unload cleanup, and restart rehydration now pass in the real app harness.
 
-## Baseline evidence
+## Verification evidence
 
-Before any fork changes:
+- `npm run validate` passes lint, UI text, TypeScript/esbuild build, and 141 tests across 11 files.
+- `npm audit --omit=dev` reports zero production findings. The unused cloud dependencies are no longer in the shipped runtime tree.
+- A real link click in isolated Obsidian 1.13.7 opens an external `.py` file in VSCode Editor's Monaco view at the requested line.
+- Monaco is read-only, and no physical `_External` path exists inside the throwaway vault.
+- Rewriting the original external file refreshes the open Monaco buffer.
+- A rendered `.html` link opens the original `file://` URL in the core Web Viewer with its fragment.
+- The live installation was checked without opening or focusing a live-vault file; both new plugins loaded and Obsidian captured no errors.
 
-- `npm run validate` passes: lint, UI text, TypeScript/esbuild build, and 134 tests across 9 files.
-- `npm audit --omit=dev` reports four inherited runtime findings (two high, two moderate) in the AWS/WebDAV XML/glob dependency trees. Those backends are outside the local-only first release and should be removed with their dependencies instead of patched into a runtime we do not intend to ship.
-- An isolated Obsidian 1.13.7 instance loads the fork and VSCode Editor.
-- `ExternalProject/hello.py` is backed by a file outside the vault, is represented as a `TFile`, and opens in a real `.monaco-editor` view.
-- No test touched the live vault or live Obsidian window.
-
-See the [interactive architecture summary](architecture.html) for the visual flow and current proof state.
+See the [implementation gallery](implementation-gallery.html) for the visual flow and proof screenshots.
