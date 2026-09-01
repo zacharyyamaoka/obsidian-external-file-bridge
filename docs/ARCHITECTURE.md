@@ -88,6 +88,8 @@ Does not own:
 
 Owns the local Monaco bundle, language mode, tabs, editing experience, and any line navigation it exposes. The bridge has a soft integration with it, not a hard bundled dependency: Obsidian's extension registration remains the source of truth.
 
+Compatibility note: VSCode Editor 1.0.5 registers its configured extensions in one call. A single collision with a core-owned extension (observed with `svg`) aborts the entire registration, leaving `.py` unowned while the plugin still appears enabled. Deployment settings therefore exclude core formats, and environment diagnostics must assert `app.viewRegistry.getTypeByExtension("py") === "vscode-editor"` rather than treating “plugin enabled” as proof of function.
+
 ### Core Web Viewer
 
 Owns rendered local HTML. HTML source and rendered HTML are two explicit intents so one plugin cannot “take ownership” of every `.html` click. The bridge should never register its own HTML view.

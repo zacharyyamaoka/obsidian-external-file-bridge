@@ -57,6 +57,7 @@ footer { margin-top:52px; padding-top:18px; border-top:1px solid var(--line); co
       <span class="badge"><strong>0</strong> production audit findings</span>
       <span class="badge">Obsidian <strong>1.13.7</strong></span>
       <span class="badge">VSCode Editor <strong>1.0.5</strong></span>
+      <span class="badge"><strong>18</strong> live doctor checks</span>
       <span class="badge"><strong>read-only</strong> first</span>
     </div>
   </header>
@@ -69,6 +70,15 @@ footer { margin-top:52px; padding-top:18px; border-top:1px solid var(--line); co
       <div class="node"><span class="n">03 · BRIDGE</span><strong>Session-only TFile</strong><p>Only the requested file and synthetic parent chain enter Obsidian's in-memory tree.</p></div>
       <div class="node"><span class="n">04 · RENDER</span><strong>Existing view owner</strong><p>VSCode Editor owns Monaco. Core Web Viewer owns rendered HTML.</p></div>
       <div class="node"><span class="n">05 · REFRESH</span><strong>Per-file watcher</strong><p>A public vault modify event refreshes an open Monaco buffer after disk changes.</p></div>
+    </div>
+  </section>
+
+  <section id="python-regression">
+    <h2>The “enabled but no Python” regression</h2>
+    <div class="grid">
+      <article class="card"><div class="icon">×</div><h3>Observed state</h3><p>Both plugins were loaded, but <code>getTypeByExtension("py")</code> returned undefined. Direct vault Python files had no view owner.</p></article>
+      <article class="card"><div class="icon">↯</div><h3>Root cause</h3><p>The configured list included <code>svg</code>, already owned by Obsidian's image view. VSCode Editor 1.0.5 registers the whole list atomically, so one collision aborted every extension.</p></article>
+      <article class="card"><div class="icon">✓</div><h3>Verified repair</h3><p><code>svg</code> stays with <code>image</code>; <code>py</code> now maps to <code>vscode-editor</code>. Direct and bridge-backed Python files both opened in Monaco in isolated Obsidian.</p></article>
     </div>
   </section>
 
@@ -101,16 +111,18 @@ footer { margin-top:52px; padding-top:18px; border-top:1px solid var(--line); co
       <tbody>
         <tr><td>Resolver and session behavior</td><td>Vitest, including traversal and symlink escape cases</td><td>141 / 141</td></tr>
         <tr><td>Production dependency surface</td><td><code>npm audit --omit=dev</code></td><td>0 findings</td></tr>
+        <tr><td>Direct vault Python</td><td><code>py → vscode-editor</code>; ordinary <code>direct.py</code> opened in Monaco</td><td>Pass</td></tr>
         <tr><td>Source rendering</td><td>Clicked protocol link → <code>vscode-editor</code> → Monaco</td><td>Pass</td></tr>
         <tr><td>Read-only boundary</td><td>Monaco raw option + adapter namespace guard</td><td>Pass</td></tr>
         <tr><td>External refresh</td><td>Disk rewrite observed in the already-open Monaco buffer</td><td>Pass</td></tr>
         <tr><td>Rendered HTML</td><td>Clicked rendered link → core <code>webviewer</code> + fragment</td><td>Pass</td></tr>
         <tr><td>Live installation</td><td>Both plugins loaded; Python Viewer disabled; captured error buffer empty</td><td>Pass</td></tr>
+        <tr><td>Environment diagnosis</td><td><code>link-doctor</code> asserts runtime <code>.py</code> ownership, not just plugin enablement</td><td>18 / 18</td></tr>
       </tbody>
     </table>
   </section>
 
-  <footer>Forked from Folder Bridge 2.15.3 · local-only runtime · screenshots captured on an invisible throwaway vault · 2026-08-26</footer>
+  <footer>Forked from Folder Bridge 2.15.3 · local-only runtime · screenshots captured on invisible throwaway vaults · Python ownership regression verified 2026-09-01</footer>
 </main>
 <script>
 const proofs = {

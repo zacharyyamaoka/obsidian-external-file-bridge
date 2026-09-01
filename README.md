@@ -42,6 +42,20 @@ This fork currently uses a manual development install:
 
 The default settings create one read-only `home` mount rooted at the current user's home directory. Narrower mounts can be added; the most specific containing mount should be used when generating links.
 
+### VSCode Editor extension ownership
+
+VSCode Editor 1.0.5 registers its configured extensions in one all-or-nothing call. If the list contains an extension Obsidian already owns—such as `svg`—registration aborts for the whole list and even `.py` appears unsupported although the plugin is enabled.
+
+- Keep Obsidian-native formats (`md`, `svg`, images, audio, video, PDF, Canvas, and Bases) out of VSCode Editor's extension setting.
+- After changing the list, reload VSCode Editor.
+- Verify the runtime mapping, not merely the enabled-plugin flag:
+
+```bash
+obsidian vault=<vault-name> eval 'code=app.viewRegistry.getTypeByExtension("py")'
+```
+
+The healthy result is `=> vscode-editor`. The companion `link-doctor --environment` check now tests this ownership directly and reports a probable extension collision when `.py` is unregistered.
+
 ## Development and verification
 
 ```bash
@@ -54,6 +68,7 @@ The current proof set covers:
 
 - 141 unit tests across the inherited baseline and new resolver/session-index cases;
 - zero production dependency audit findings;
+- an ordinary vault `.py` opening directly in VSCode Editor/Monaco;
 - an isolated Obsidian 1.13.7 click opening an external Python file in a real Monaco view;
 - line navigation and enforced read-only editor state;
 - no physical `_External` file inside the vault;
